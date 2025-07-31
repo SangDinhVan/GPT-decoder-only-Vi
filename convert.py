@@ -16,7 +16,7 @@ def json_to_dataset(json_path, dataset):
 
         prompt_clean = prompt_clean.lower()
         output_clean = output_clean.lower()
-        full_line = f"<sos> USER {prompt_clean} AI {output_clean} <eos>\n"
+        full_line = f"<sos> <user> {prompt_clean} <bot> {output_clean} <eos>\n"
         dataset.append(full_line)
 
 def list_to_string(lst, sep=" "):
@@ -34,7 +34,7 @@ def json_to_dataset2(json_path, dataset):
 
         prompt = list_to_string(prompts)
         response = list_to_string(responses)
-        dataset.append(f"<sos> USER {prompt} AI {response} <eos>\n")
+        dataset.append(f"<sos> <user> {prompt} <bot> {response} <eos>\n")
 
 
 

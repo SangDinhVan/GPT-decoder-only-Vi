@@ -1,21 +1,16 @@
 import torch
 import torch.nn as nn
-from tokenizer_utils import TokenizerEnVi
+from tokenizer_utils import SubwordTokenizer
 from model import build_gpt_model
 import torch.nn.functional as F
 # --- Cấu hình ---
-SEQ_LEN = 256
+SEQ_LEN = 128
 MODEL_PATH = "saved/best_model.pth"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # --- Load tokenizer ---
-tokenizer = TokenizerEnVi(language="vi")
-tokenizer.special_tokens = ["<pad>", "<unk>", "<sos>", "<eos>"]
+tokenizer = SubwordTokenizer("saved/vi_bpe.model")
 
-# Tải vocab (nếu bạn đã lưu), ví dụ:
-import pickle
-with open("saved/tokenizer.pkl", "rb") as f:
-    tokenizer = pickle.load(f)
 
 pad_id = tokenizer.word2idx["<pad>"]
 
@@ -45,7 +40,7 @@ def generate_response(model, tokenizer, prompt,
     model.eval()
     with torch.no_grad():
         # 1. Chuẩn bị prompt
-        text = f"<sos> USER {prompt} AI"
+        text = f"<sos> <user> {prompt} <bot>"
         input_ids = tokenizer.encode(text, add_special_tokens=False)
         # 2. Truncate
         if len(input_ids) > seq_len - 1:
@@ -96,8 +91,8 @@ def generate_response(model, tokenizer, prompt,
         text_out = tokenizer.decode(output_ids, skip_special_tokens=True)
 
         # 12. Lấy phần sau "bot:"
-        if "AI" in text_out:
-            return text_out.split("AI", 1)[1].strip()
+        if "<bot>" in text_out:
+            return text_out.split("<bot>", 1)[1].strip()
         return text_out.strip()
 
 

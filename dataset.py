@@ -7,7 +7,7 @@ class GPTChatDataset(Dataset):
         self.tokenizer = tokenizer
         self.seq_len = seq_len
         self.pad_id = tokenizer.word2idx["<pad>"]
-        self.bot_token_id = tokenizer.word2idx.get("AI", None)
+        self.bot_token_id = tokenizer.word2idx.get("<bot>", None)
     def __len__(self):
         return len(self.lines)
 
@@ -23,6 +23,8 @@ class GPTChatDataset(Dataset):
 
         # Tạo label giống input, nhưng mask phần prompt (trước "bot:")
         labels = input_ids.copy()
+        labels = [tok if tok != self.pad_id else -100 for tok in input_ids]
+
         if self.bot_token_id is not None:
             try:
                 bot_index = input_ids.index(self.bot_token_id)
