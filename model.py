@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import math
-
+import torch.nn.functional as F
 
 class LayerNormalization(nn.Module):
 
@@ -31,7 +31,8 @@ class FeedForwardBlock(nn.Module):
 
     def forward(self, x):
         # (batch, seq_len, d_model) --> (batch, seq_len, d_ff) --> (batch, seq_len, d_model)
-        return self.linear_2(self.dropout(torch.relu(self.linear_1(x))))
+        # return self.linear_2(self.dropout(torch.relu(self.linear_1(x))))
+        return self.linear_2(self.dropout(F.gelu(self.linear_1(x))))
 
 
 class InputEmbeddings(nn.Module):
@@ -181,19 +182,21 @@ class ProjectionLayer(nn.Module):
 
 class GPTModel(nn.Module):
 
-    def __init__(self, decoder: Decoder, tgt_embed: InputEmbeddings,tgt_pos: PositionalEncoding, projection_layer: ProjectionLayer) -> None:
+    def __init__(self, decoder: Decoder, tgt_embed: InputEmbeddings,
+                 tgt_pos: PositionalEncoding, projection_layer: ProjectionLayer, dropout: float = 0.1) -> None:
         super().__init__()
         self.decoder = decoder
         self.tgt_embed = tgt_embed
         self.tgt_pos = tgt_pos
         self.projection_layer = projection_layer
-
+        self.dropout = nn.Dropout(dropout)
     # input_ids → embedding → positional
     # encoding → decoder → logits
 
     def forward(self, tgt, tgt_mask):
         x = self.tgt_embed(tgt)
         x = self.tgt_pos(x)
+        x = self.dropout(x)
         x = self.decoder(x, tgt_mask)
         return self.projection_layer(x)
 
@@ -227,5 +230,7 @@ def build_gpt_model(vocab_size: int, seq_len: int, d_model: int = 128,
     for p in model.parameters():
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
+
+    model.projection_layer.proj.weight = model.tgt_embed.embedding.weight
 
     return model

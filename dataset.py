@@ -21,19 +21,20 @@ class GPTChatDataset(Dataset):
         # Tạo attention mask (causal mask)
         attn_mask = self.generate_causal_mask(self.seq_len)
 
-        # Tạo label giống input, nhưng mask phần prompt (trước "bot:")
-        labels = input_ids.copy()
-        labels = [tok if tok != self.pad_id else -100 for tok in input_ids]
+        # Mặc định tất cả label = -100 trước
+        labels = [-100] * len(input_ids)
 
         if self.bot_token_id is not None:
             try:
                 bot_index = input_ids.index(self.bot_token_id)
-                for i in range(bot_index + 1):
-                    labels[i] = -100
+
+                # Dịch trái 1 token cho phần response (tính từ bot_index trở đi)
+                labels[bot_index:-1] = input_ids[bot_index + 1:]
+                # token cuối luôn luôn là -100 (vì không có token tiếp theo)
+                labels[-1] = -100
+
             except ValueError:
                 labels = [-100] * len(input_ids)
-        else:
-            labels = [-100] * len(input_ids)
 
         return {
             "decoder_input": torch.tensor(input_ids),
